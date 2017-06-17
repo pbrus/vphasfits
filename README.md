@@ -1,2 +1,2 @@
-# vphas-fits-support
-Set of scripts facilitating a work with VPHAS+ data
+# Vphas-fits-support
+The project is in the process of creating.
