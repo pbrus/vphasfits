@@ -31,7 +31,32 @@ srctbl_keys = [
     'Aper_flux_3_err'
 ]
 
-def get_tile(filename, tile):
+def pawprint_to_fits(filename, pawprint_number):
+    """Save the specific pawprint to a single fits image.
+
+    Parameters
+    ----------
+    filename : str
+        a name of a multi-extension fits image
+        from the VPHAS+ project
+    pawprint_number : int
+        a number indicating the specific pawprint
+        Valid values: 1, 2, ..., 32
+
+    Notes
+    -----
+    File is saved in the working directory
+    and its name contains a proper pawprint
+    number which the file comes from.
+    To add/remove values of the header fits,
+    please edit 'header_keys' (list) variable.
+
+    Examples
+    --------
+    >>> import vphas
+    >>> vphas.header_keys += ['PSF_FWHM']
+    >>> vphas.pawprint_to_fits("0800b.fits", 7)
+    """
     try:
         hdulist = pyfits.open(filename)
     except IOError:
@@ -39,31 +64,59 @@ def get_tile(filename, tile):
         return
 
     try:
-        tile_fits = pyfits.PrimaryHDU(hdulist[tile].data)
+        pawprint_number_fits = pyfits.PrimaryHDU(hdulist[pawprint_number].data)
     except IndexError:
-        print("Module %s: %i is incorrect value of tile." % (__name__, tile))
+        print("Module %s: %i is incorrect value of pawprint_number." % (__name__, pawprint_number))
         return
 
-    output_name = filename.replace('.fits', '-t' + str(tile) + '.fits')
-    tile_fits = pyfits.PrimaryHDU(hdulist[tile].data)
-    tile_fits.header = hdulist[0].header
-    del tile_fits.header['EXTEND']
+    output_name = filename.replace('.fits', '-t' + str(pawprint_number) + '.fits')
+    pawprint_number_fits = pyfits.PrimaryHDU(hdulist[pawprint_number].data)
+    pawprint_number_fits.header = hdulist[0].header
+    del pawprint_number_fits.header['EXTEND']
 
     for key in header_keys:
-        tile_fits.header[key] = hdulist[tile].header[key]
-        tile_fits.header.comments[key] = hdulist[tile].header.comments[key]
+        pawprint_number_fits.header[key] = hdulist[pawprint_number].header[key]
+        pawprint_number_fits.header.comments[key] = hdulist[pawprint_number].header.comments[key]
 
-    tile_fits.header['OBJECT'] = output_name.replace(".fits","")
+    pawprint_number_fits.header['OBJECT'] = output_name.replace(".fits","")
 
     try:
-        tile_fits.writeto(output_name)
+        pawprint_number_fits.writeto(output_name)
     except IOError as error:
         print(str(error))
     finally:
         hdulist.close()
 
 
-def srctbl_to_textfile(filename, tile):
+def srctbl_to_txt(filename, pawprint_number):
+    """Save a table with raw data to a text file.
+
+    Parameters
+    ----------
+    filename : str
+        a name of a multi-extension fits source
+        table from the VPHAS+ project
+    pawprint_number : int
+        a number indicating the specific pawprint
+        Valid values: 1, 2, ..., 32
+
+    Notes
+    -----
+    File is saved in the working directory
+    and its name contains a proper pawprint
+    number which the file comes from and the
+    '-srctbl' suffix. To add/remove columns
+    to/from the text file, please edit
+    'srctbl_keys' (list) variable. This also
+    allows to change the order of columns.
+
+    Examples
+    --------
+    >>> import vphas
+    >>> vphas.srctbl_keys.remove('DEC')
+    >>> vphas.srctbl_keys += ['Aper_flux_4', 'Aper_flux_4_err']
+    >>> vphas.srctbl_to_txt("0704a.fits", 23)
+    """
     try:
         hdulist = pyfits.open(filename)
     except IOError:
@@ -71,12 +124,12 @@ def srctbl_to_textfile(filename, tile):
         return
 
     try:
-        data = hdulist[tile].data
+        data = hdulist[pawprint_number].data
     except IndexError:
-        print("Module %s: %i is incorrect value of tile." % (__name__, tile))
+        print("Module %s: %i is incorrect value of pawprint_number." % (__name__, pawprint_number))
         return
 
-    textfile_name = filename.replace('.fits', '-t' + str(tile) + '-srctbl.dat')
+    textfile_name = filename.replace('.fits', '-t' + str(pawprint_number) + '-srctbl.dat')
     textfile_descriptor = open(textfile_name, 'w')
     textfile_header = "#"
 
@@ -84,7 +137,7 @@ def srctbl_to_textfile(filename, tile):
         textfile_header += "  " + key
 
     textfile_descriptor.write(textfile_header + "\n")
-    row_format = ("%14s " * len(srctbl_keys)).rstrip(' ') + "\n"
+    row_format = ("%12s " * len(srctbl_keys)).rstrip(' ') + "\n"
 
     for dat in data:
         row = tuple()
