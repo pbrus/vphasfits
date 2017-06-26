@@ -2,7 +2,8 @@ from __future__ import division, absolute_import, print_function
 
 try:
     import pyfits
-    #import numpy as np
+    from numpy import float32
+    from math import isnan
     from astropy import units as u
     from astropy.coordinates import SkyCoord
 except ImportError as error:
@@ -30,6 +31,19 @@ srctbl_keys = [
     'Aper_flux_3',
     'Aper_flux_3_err'
 ]
+
+catalog_keys = [
+    'sourceID',
+    'RAJ2000',
+    'DEJ2000',
+    'u', 'err_u',
+    'g', 'err_g',
+    'r2', 'err_r2',
+    'ha', 'err_ha',
+    'r', 'err_r',
+    'i', 'err_i'
+]
+
 
 def pawprint_to_fits(filename, pawprint_number):
     """Save the specific pawprint to a single fits image.
@@ -153,6 +167,74 @@ def srctbl_to_txt(filename, pawprint_number):
                     row += dec,
                 else:
                     row += dat.field(key),
+            except KeyError:
+                print("Module %s: Key '%s' doesn't exist." % (__name__, key))
+                return
+        textfile_descriptor.write(row_format % row)
+
+    textfile_descriptor.close()
+    hdulist.close()
+
+
+def catalog_to_txt(filename):
+    """Save the VPHAS+ catalog to a text file.
+
+    Parameters
+    ----------
+    filename : str
+        a name of a multi-extension fits
+        catalog from the VPHAS+ project
+
+    Notes
+    -----
+    File is saved in the working directory
+    and its name contains the '-cat' suffix.
+    To add/remove columns to/from the text file,
+    please edit 'catalog_keys' (list) variable.
+    This also allows to change the order of columns.
+
+    Examples
+    --------
+    >>> import vphas
+    >>> vphas.catalog_keys.remove('sourceID')
+    >>> vphas.catalog_keys
+    >>> ['RAJ2000', 'DEJ2000', 'u', 'err_u', 'g', 'err_g', 'r2', 'err_r2', 'ha', 'err_ha', 'r', 'err_r', 'i', 'err_i']
+    >>> vphas.catalog_to_txt("0854b.fits")
+    """
+    try:
+        hdulist = pyfits.open(filename)
+    except IOError:
+        print("Module %s: Cannot open '%s' file." % (__name__, filename))
+        return
+
+    data = hdulist[1].data
+    textfile_name = filename.replace('.fits', '-cat.dat')
+    textfile_descriptor = open(textfile_name, 'w')
+    textfile_header = "#"
+
+    for key in catalog_keys:
+        textfile_header += "  " + key
+
+    textfile_descriptor.write(textfile_header + "\n")
+    row_format = ("%15s " * len(catalog_keys)).rstrip(' ') + "\n"
+
+    for dat in data:
+        row = tuple()
+        for key in catalog_keys:
+            try:
+                if key == "RAJ2000":
+                    coo = SkyCoord(dat.field(key), 0.0, frame="icrs", unit="deg")
+                    ra = "%02d:%02d:%05.2f" % (coo.ra.hms[0], coo.ra.hms[1], coo.ra.hms[2])
+                    row += ra,
+                elif key == "DEJ2000":
+                    coo = SkyCoord(0.0, dat.field(key), frame="icrs", unit="deg")
+                    dec = "%02d:%02d:%05.2f" % (coo.dec.dms[0], abs(coo.dec.dms[1]), abs(coo.dec.dms[2]))
+                    row += dec,
+                else:
+                    df = dat.field(key)
+                    if isinstance(df, float32) and isnan(df):
+                        df = 99.9999
+                    row += df,
             except KeyError:
                 print("Module %s: Key '%s' doesn't exist." % (__name__, key))
                 return

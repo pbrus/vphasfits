@@ -101,5 +101,5 @@ ENV/
 .mypy_cache/
 
 # tmpfiles
-*fits
-*-srctbl.dat
+*.fits
+*.dat
