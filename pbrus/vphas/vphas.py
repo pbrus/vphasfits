@@ -10,6 +10,7 @@ Provides three functions:
     2. import a fits source table to a text file
     3. import a fits catalog to a text file
 """
+
 from __future__ import division, absolute_import, print_function
 
 try:
