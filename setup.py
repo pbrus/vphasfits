@@ -1,18 +1,13 @@
-#!/usr/bin/env python
-
-from setuptools import setup
-
+from distutils.core import setup
 
 setup(
-    name='vphas',
-    description='Tools for VPHAS+ fits',
-    author='Przemyslaw Brus',
-    license='MIT',
-    py_modules = ['pbrus.vphas.vphas'],
-    install_requires=[
-        'pyfits',
-        'numpy',
-        'math',
-        'astropy',
-    ],
+  name = 'vphasfits',
+  packages = ['vphasfits'],
+  version = '0.1',
+  description = 'A library allows to get data from multi-extension VPHAS+ fits',
+  author = 'Przemyslaw Brus',
+  url = 'https://github.com/pbrus/vphasfits',
+  download_url = 'https://github.com/pbrus/vphasfits/archive/0.1.tar.gz',
+  keywords = ['VPHAS+', 'fits', 'text'],
+  classifiers = [],
 )
