@@ -1,12 +1,12 @@
 """
-vphas+
-======
+vphasfits
+=========
 
 This is a simple module which allows to
 convert fits from VPHAS+ project.
 
 Provides three functions:
-    1. get a single pawprint from the multi-extension fits image
+    1. get a single pawprint from a multi-extension fits image
     2. import a fits source table to a text file
     3. import a fits catalog to a text file
 """
@@ -64,11 +64,11 @@ def pawprint_to_fits(filename, pawprint_number):
     Parameters
     ----------
     filename : str
-        a name of a multi-extension fits image
-        from the VPHAS+ project
+        A name of a multi-extension fits image
+        from the VPHAS+ project.
     pawprint_number : int
-        a number indicating the specific pawprint
-        Valid values: 1, 2, ..., 32
+        A number indicating the specific pawprint.
+        Valid values: 1, 2, ..., 32.
 
     Notes
     -----
@@ -80,9 +80,9 @@ def pawprint_to_fits(filename, pawprint_number):
 
     Examples
     --------
-    >>> import vphas
-    >>> vphas.header_keys += ['PSF_FWHM']
-    >>> vphas.pawprint_to_fits("0800b.fits", 7)
+    >>> from vphasfits import vphaslib
+    >>> vphaslib.header_keys += ['PSF_FWHM']
+    >>> vphaslib.pawprint_to_fits("0800b.fits", 7)
     """
     try:
         hdulist = pyfits.open(filename)
@@ -94,9 +94,10 @@ def pawprint_to_fits(filename, pawprint_number):
         pawprint_number_fits = pyfits.PrimaryHDU(hdulist[pawprint_number].data)
     except IndexError:
         print("Module %s: %i is incorrect value of pawprint_number." % (__name__, pawprint_number))
+        hdulist.close()
         return
 
-    output_name = filename.replace('.fits', '-t' + str(pawprint_number) + '.fits')
+    output_name = filename.replace('.fits', '-p' + str(pawprint_number) + '.fits')
     pawprint_number_fits = pyfits.PrimaryHDU(hdulist[pawprint_number].data)
     pawprint_number_fits.header = hdulist[0].header
     del pawprint_number_fits.header['EXTEND']
@@ -121,11 +122,11 @@ def srctbl_to_txt(filename, pawprint_number):
     Parameters
     ----------
     filename : str
-        a name of a multi-extension fits source
-        table from the VPHAS+ project
+        A name of a multi-extension fits source
+        table from the VPHAS+ project.
     pawprint_number : int
-        a number indicating the specific pawprint
-        Valid values: 1, 2, ..., 32
+        A number indicating the specific pawprint.
+        Valid values: 1, 2, ..., 32.
 
     Notes
     -----
@@ -139,10 +140,10 @@ def srctbl_to_txt(filename, pawprint_number):
 
     Examples
     --------
-    >>> import vphas
-    >>> vphas.srctbl_keys.remove('DEC')
-    >>> vphas.srctbl_keys += ['Aper_flux_4', 'Aper_flux_4_err']
-    >>> vphas.srctbl_to_txt("0704a.fits", 23)
+    >>> from vphasfits import vphaslib
+    >>> vphaslib.srctbl_keys.remove('DEC')
+    >>> vphaslib.srctbl_keys += ['Aper_flux_4', 'Aper_flux_4_err']
+    >>> vphaslib.srctbl_to_txt("0704a.fits", 23)
     """
     try:
         hdulist = pyfits.open(filename)
@@ -154,9 +155,10 @@ def srctbl_to_txt(filename, pawprint_number):
         data = hdulist[pawprint_number].data
     except IndexError:
         print("Module %s: %i is incorrect value of pawprint_number." % (__name__, pawprint_number))
+        hdulist.close()
         return
 
-    textfile_name = filename.replace('.fits', '-t' + str(pawprint_number) + '-srctbl.dat')
+    textfile_name = filename.replace('.fits', '-p' + str(pawprint_number) + '-srctbl.dat')
     textfile_descriptor = open(textfile_name, 'w')
     textfile_header = "#"
 
@@ -182,6 +184,8 @@ def srctbl_to_txt(filename, pawprint_number):
                     row += dat.field(key),
             except KeyError:
                 print("Module %s: Key '%s' doesn't exist." % (__name__, key))
+                textfile_descriptor.close()
+                hdulist.close()
                 return
         textfile_descriptor.write(row_format % row)
 
@@ -195,8 +199,8 @@ def catalog_to_txt(filename):
     Parameters
     ----------
     filename : str
-        a name of a multi-extension fits
-        catalog from the VPHAS+ project
+        A name of a multi-extension fits
+        catalog from the VPHAS+ project.
 
     Notes
     -----
@@ -208,11 +212,11 @@ def catalog_to_txt(filename):
 
     Examples
     --------
-    >>> import vphas
-    >>> vphas.catalog_keys.remove('sourceID')
-    >>> vphas.catalog_keys
+    >>> from vphasfits import vphaslib
+    >>> vphaslib.catalog_keys.remove('sourceID')
+    >>> vphaslib.catalog_keys
     >>> ['RAJ2000', 'DEJ2000', 'u', 'err_u', 'g', 'err_g', 'r2', 'err_r2', 'ha', 'err_ha', 'r', 'err_r', 'i', 'err_i']
-    >>> vphas.catalog_to_txt("0854b.fits")
+    >>> vphaslib.catalog_to_txt("VPHASDR2_PSC_L213_B+1.fits")
     """
     try:
         hdulist = pyfits.open(filename)
@@ -250,6 +254,8 @@ def catalog_to_txt(filename):
                     row += df,
             except KeyError:
                 print("Module %s: Key '%s' doesn't exist." % (__name__, key))
+                textfile_descriptor.close()
+                hdulist.close()
                 return
         textfile_descriptor.write(row_format % row)
 
