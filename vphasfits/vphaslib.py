@@ -1,6 +1,6 @@
 """
-vphasfits
-=========
+vphaslib
+========
 
 This is a simple module which allows to
 convert fits from VPHAS+ project.
@@ -85,35 +85,36 @@ def pawprint_to_fits(filename, pawprint_number):
     >>> vphaslib.pawprint_to_fits("0800b.fits", 7)
     """
     try:
-        hdulist = pyfits.open(filename)
+        with pyfits.open(filename) as hdulist:
+            try:
+                pawprint_number_fits = pyfits.PrimaryHDU(hdulist[pawprint_number].data)
+            except IndexError:
+                print("Module %s: %i is an incorrect value of pawprint_number." % (__name__, pawprint_number))
+                return
+
+            output_name = filename.replace('.fits', '-p' + str(pawprint_number) + '.fits')
+            pawprint_number_fits = pyfits.PrimaryHDU(hdulist[pawprint_number].data)
+            pawprint_number_fits.header = hdulist[0].header
+            del pawprint_number_fits.header['EXTEND']
+
+            for key in header_keys:
+                try:
+                    pawprint_number_fits.header[key] = hdulist[pawprint_number].header[key]
+                    pawprint_number_fits.header.comments[key] = hdulist[pawprint_number].header.comments[key]
+                except KeyError:
+                    print("Module %s: Key '%s' cannot exist in the header_keys list." % (__name__, key))
+                    return
+
+            pawprint_number_fits.header['OBJECT'] = output_name.replace(".fits","")
+
+            try:
+                pawprint_number_fits.writeto(output_name)
+            except IOError as error:
+                print("Module %s: %s." % (__name__, str(error)))
+
     except IOError:
         print("Module %s: Cannot open '%s' file." % (__name__, filename))
         return
-
-    try:
-        pawprint_number_fits = pyfits.PrimaryHDU(hdulist[pawprint_number].data)
-    except IndexError:
-        print("Module %s: %i is incorrect value of pawprint_number." % (__name__, pawprint_number))
-        hdulist.close()
-        return
-
-    output_name = filename.replace('.fits', '-p' + str(pawprint_number) + '.fits')
-    pawprint_number_fits = pyfits.PrimaryHDU(hdulist[pawprint_number].data)
-    pawprint_number_fits.header = hdulist[0].header
-    del pawprint_number_fits.header['EXTEND']
-
-    for key in header_keys:
-        pawprint_number_fits.header[key] = hdulist[pawprint_number].header[key]
-        pawprint_number_fits.header.comments[key] = hdulist[pawprint_number].header.comments[key]
-
-    pawprint_number_fits.header['OBJECT'] = output_name.replace(".fits","")
-
-    try:
-        pawprint_number_fits.writeto(output_name)
-    except IOError as error:
-        print(str(error))
-    finally:
-        hdulist.close()
 
 
 def srctbl_to_txt(filename, pawprint_number):
@@ -146,51 +147,46 @@ def srctbl_to_txt(filename, pawprint_number):
     >>> vphaslib.srctbl_to_txt("0704a.fits", 23)
     """
     try:
-        hdulist = pyfits.open(filename)
-    except IOError:
-        print("Module %s: Cannot open '%s' file." % (__name__, filename))
-        return
-
-    try:
-        data = hdulist[pawprint_number].data
-    except IndexError:
-        print("Module %s: %i is incorrect value of pawprint_number." % (__name__, pawprint_number))
-        hdulist.close()
-        return
-
-    textfile_name = filename.replace('.fits', '-p' + str(pawprint_number) + '-srctbl.dat')
-    textfile_descriptor = open(textfile_name, 'w')
-    textfile_header = "#"
-
-    for key in srctbl_keys:
-        textfile_header += "  " + key
-
-    textfile_descriptor.write(textfile_header + "\n")
-    row_format = ("%12s " * len(srctbl_keys)).rstrip(' ') + "\n"
-
-    for dat in data:
-        row = tuple()
-        for key in srctbl_keys:
+        with pyfits.open(filename) as hdulist:
             try:
-                if key == "RA":
-                    coo = SkyCoord(dat.field(key), 0.0, frame="icrs", unit="radian")
-                    ra = "%02d:%02d:%05.2f" % (coo.ra.hms[0], coo.ra.hms[1], coo.ra.hms[2])
-                    row += ra,
-                elif key == "DEC":
-                    coo = SkyCoord(0.0, dat.field(key), frame="icrs", unit="radian")
-                    dec = "%02d:%02d:%05.2f" % (coo.dec.dms[0], abs(coo.dec.dms[1]), abs(coo.dec.dms[2]))
-                    row += dec,
-                else:
-                    row += dat.field(key),
-            except KeyError:
-                print("Module %s: Key '%s' doesn't exist." % (__name__, key))
-                textfile_descriptor.close()
-                hdulist.close()
+                data = hdulist[pawprint_number].data
+            except IndexError:
+                print("Module %s: %i is an incorrect value of pawprint_number." % (__name__, pawprint_number))
                 return
-        textfile_descriptor.write(row_format % row)
 
-    textfile_descriptor.close()
-    hdulist.close()
+            textfile_name = filename.replace('.fits', '-p' + str(pawprint_number) + '-srctbl.dat')
+            textfile_header = "#"
+
+            for key in srctbl_keys:
+                textfile_header += "  " + key
+
+            with open(textfile_name, 'w') as textfile_descriptor:
+                textfile_descriptor.write(textfile_header + "\n")
+                row_format = ("%12s " * len(srctbl_keys)).rstrip(' ') + "\n"
+
+                for dat in data:
+                    row = tuple()
+                    for key in srctbl_keys:
+                        try:
+                            if key == "RA":
+                                coo = SkyCoord(dat.field(key), 0.0, frame="icrs", unit="radian")
+                                ra = "%02d:%02d:%05.2f" % (coo.ra.hms[0], coo.ra.hms[1], coo.ra.hms[2])
+                                row += ra,
+                            elif key == "DEC":
+                                coo = SkyCoord(0.0, dat.field(key), frame="icrs", unit="radian")
+                                dec = "%02d:%02d:%05.2f" % (coo.dec.dms[0], abs(coo.dec.dms[1]), abs(coo.dec.dms[2]))
+                                row += dec,
+                            else:
+                                row += dat.field(key),
+                        except KeyError:
+                            print("Module %s: Key '%s' cannot exist in the srctbl_keys list." % (__name__, key))
+                            return
+
+                    textfile_descriptor.write(row_format % row)
+
+    except IOError as error:
+        print("Module %s: %s." % (__name__, str(error)))
+        return
 
 
 def catalog_to_txt(filename):
@@ -219,45 +215,46 @@ def catalog_to_txt(filename):
     >>> vphaslib.catalog_to_txt("VPHASDR2_PSC_L213_B+1.fits")
     """
     try:
-        hdulist = pyfits.open(filename)
-    except IOError:
-        print("Module %s: Cannot open '%s' file." % (__name__, filename))
-        return
-
-    data = hdulist[1].data
-    textfile_name = filename.replace('.fits', '-cat.dat')
-    textfile_descriptor = open(textfile_name, 'w')
-    textfile_header = "#"
-
-    for key in catalog_keys:
-        textfile_header += "  " + key
-
-    textfile_descriptor.write(textfile_header + "\n")
-    row_format = ("%15s " * len(catalog_keys)).rstrip(' ') + "\n"
-
-    for dat in data:
-        row = tuple()
-        for key in catalog_keys:
+        with pyfits.open(filename) as hdulist:
             try:
-                if key == "RAJ2000":
-                    coo = SkyCoord(dat.field(key), 0.0, frame="icrs", unit="deg")
-                    ra = "%02d:%02d:%05.2f" % (coo.ra.hms[0], coo.ra.hms[1], coo.ra.hms[2])
-                    row += ra,
-                elif key == "DEJ2000":
-                    coo = SkyCoord(0.0, dat.field(key), frame="icrs", unit="deg")
-                    dec = "%02d:%02d:%05.2f" % (coo.dec.dms[0], abs(coo.dec.dms[1]), abs(coo.dec.dms[2]))
-                    row += dec,
-                else:
-                    df = dat.field(key)
-                    if isinstance(df, float32) and isnan(df):
-                        df = 99.9999
-                    row += df,
-            except KeyError:
-                print("Module %s: Key '%s' doesn't exist." % (__name__, key))
-                textfile_descriptor.close()
-                hdulist.close()
+                data = hdulist[1].data
+            except IndexError:
+                print("Module %s: %s is not a fits catalog." % (__name__, filename))
                 return
-        textfile_descriptor.write(row_format % row)
 
-    textfile_descriptor.close()
-    hdulist.close()
+            textfile_name = filename.replace('.fits', '-cat.dat')
+            textfile_header = "#"
+
+            for key in catalog_keys:
+                textfile_header += "  " + key
+
+            with open(textfile_name, 'w') as textfile_descriptor:
+                textfile_descriptor.write(textfile_header + "\n")
+                row_format = ("%15s " * len(catalog_keys)).rstrip(' ') + "\n"
+
+                for dat in data:
+                    row = tuple()
+                    for key in catalog_keys:
+                        try:
+                            if key == "RAJ2000":
+                                coo = SkyCoord(dat.field(key), 0.0, frame="icrs", unit="deg")
+                                ra = "%02d:%02d:%05.2f" % (coo.ra.hms[0], coo.ra.hms[1], coo.ra.hms[2])
+                                row += ra,
+                            elif key == "DEJ2000":
+                                coo = SkyCoord(0.0, dat.field(key), frame="icrs", unit="deg")
+                                dec = "%02d:%02d:%05.2f" % (coo.dec.dms[0], abs(coo.dec.dms[1]), abs(coo.dec.dms[2]))
+                                row += dec,
+                            else:
+                                df = dat.field(key)
+                                if isinstance(df, float32) and isnan(df):
+                                    df = 99.9999
+                                row += df,
+                        except KeyError:
+                            print("Module %s: Key '%s' cannot exist in the catalog_keys list." % (__name__, key))
+                            return
+
+                    textfile_descriptor.write(row_format % row)
+
+    except IOError as error:
+        print("Module %s: %s." % (__name__, str(error)))
+        return
