@@ -6,7 +6,6 @@ setup(
   description = 'A library allows to get data from the multi-extension VPHAS+ fits',
   install_requires=['pyfits',
                     'numpy',
-                    'math',
                     'astropy'
                     ],
   author = 'Przemyslaw Brus',
