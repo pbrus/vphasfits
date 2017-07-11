@@ -27,6 +27,7 @@ $ sudo pip uninstall vphasfits
 ```
 
 ## Usage
+### Module
 
 After installation you can add the library to own project or test it using interactive mode of Python:
 ```python
@@ -61,7 +62,7 @@ To see more info about the module, please call the docstring:
 >>> help(vphaslib)
 ```
 
-## Scripts
+### Scripts
 
 The package contains also three ready-to-use programs in the `scripts/` directory. After installation the `vphasfits` module you can use them from anywhere. The `argparse` module is needed. More info can be found calling scripts with the `--help` option.
 
