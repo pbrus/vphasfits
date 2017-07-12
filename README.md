@@ -18,7 +18,6 @@ Additionally the module uses the following components:
 
  * *pytfits*
  * *numpy*
- * *math*
  * *astropy*
 
 which should be installed automatically during the package installation. To uninstall the whole module, please type from the command line:
