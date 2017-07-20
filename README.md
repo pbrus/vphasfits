@@ -36,15 +36,15 @@ This will give you three functions to handle the data from the [ESO query interf
 
 1. get a single pawprint from a multi-extension fits image; product category: *image*
 ```python
->>> vphaslib.pawprint_to_fits("ADP.2015-05-11T10:20:21.993.fits", 7)
+>>> vphaslib.pawprint_to_fits("ADP.2015-05-11T10-20-21.993.fits", 7)
 ```
 2. import a fits source table to a text file; product category: *source_table*
 ```python
->>> vphaslib.srctbl_to_txt("ADP.2015-05-11T10:19:46.847.fits", 23)
+>>> vphaslib.srctbl_to_txt("ADP.2015-05-11T10-19-46.847.fits", 23)
 ```
 3. import a fits catalog to a text file; product category: *catalog*
 ```python
->>> vphaslib.catalog_to_txt("VPHASDR2_PSC_L213_B+1.fits")
+>>> vphaslib.catalog_to_txt("VPHASDR2_PSC_L213_B-1.fits")
 ```
 
 All data from the [**VPHASplus**](http://www.vphasplus.org) project are stored inside *FITS* files. You can easly choose columns or keys of header which can be used before conversion. To do this, please edit the following lists (add/remove/permutate their elements):

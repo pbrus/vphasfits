@@ -212,7 +212,7 @@ def catalog_to_txt(filename):
     >>> vphaslib.catalog_keys.remove('sourceID')
     >>> vphaslib.catalog_keys
     >>> ['RAJ2000', 'DEJ2000', 'u', 'err_u', 'g', 'err_g', 'r2', 'err_r2', 'ha', 'err_ha', 'r', 'err_r', 'i', 'err_i']
-    >>> vphaslib.catalog_to_txt("VPHASDR2_PSC_L213_B+1.fits")
+    >>> vphaslib.catalog_to_txt("VPHASDR2_PSC_L213_B-1.fits")
     """
     try:
         with pyfits.open(filename) as hdulist:

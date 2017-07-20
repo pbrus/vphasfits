@@ -1,3 +1,4 @@
+#-*- coding: utf-8 -*-
 from distutils.core import setup
 
 setup(
@@ -8,7 +9,7 @@ setup(
                     'numpy',
                     'astropy'
                     ],
-  author = 'Przemyslaw Brus',
+  author = 'Przemysław Bruś',
   license='MIT',
   url = 'https://github.com/pbrus/vphasfits',
   download_url = 'https://github.com/pbrus/vphasfits/archive/0.1.tar.gz',
