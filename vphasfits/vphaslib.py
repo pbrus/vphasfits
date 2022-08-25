@@ -11,17 +11,18 @@ Provides three functions:
     3. import a fits catalog to a text file
 """
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
-from astropy.io.fits.fitsrec import FITS_rec
+from astropy.coordinates import SkyCoord
 from astropy.io import fits
+from astropy.io.fits.fitsrec import FITS_rec
 
 try:
+    from math import isnan
+
+    from astropy import units as u
     from astropy.io import fits as pyfits
     from numpy import float32
-    from math import isnan
-    from astropy import units as u
-    from astropy.coordinates import SkyCoord
 except ImportError as error:
     print(str(error))
     exit(1)
@@ -104,14 +105,14 @@ def get_fits_records(source_table_fits: str, pawprint: int) -> FITS_rec:
     return records
 
 
-def convert_ra_to_hhmmss(value: float, unit: str = "deg") -> str:
+def convert_ra_to_hhmmss(value: float, unit: Optional[str] = "deg") -> str:
     """Convert RA to hh:mm:ss format."""
     coo = SkyCoord(value, 0.0, frame="icrs", unit=unit)
     ra = coo.ra
     return f"{ra.hms[0]:02.0f}:{ra.hms[1]:02.0f}:{ra.hms[2]:06.3f}"
 
 
-def convert_dec_to_ddmmss(value: float, unit: str = "deg") -> str:
+def convert_dec_to_ddmmss(value: float, unit: Optional[str] = "deg") -> str:
     """Convert DEC to hh:mm:ss format."""
     coo = SkyCoord(0.0, value, frame="icrs", unit=unit)
     dec = coo.dec
@@ -180,7 +181,9 @@ def pawprint_to_fits(filename, pawprint_number):
         return
 
 
-def convert_src_table_fits_to_txt(src_table_fits: str, pawprint_number: int, src_table_txt: str = None) -> None:
+def convert_src_table_fits_to_txt(
+    src_table_fits: str, pawprint_number: int, src_table_txt: Optional[str] = None
+) -> None:
     """
     Save a source table with raw data to a text file.
 
@@ -197,7 +200,7 @@ def convert_src_table_fits_to_txt(src_table_fits: str, pawprint_number: int, src
         source table in ASCII format. The default is None.
         If None the name of the output file contains a proper
         pawprint number which the file comes from and the
-        '-srctbl' suffix.
+        "-srctbl" suffix.
 
 
     Notes
