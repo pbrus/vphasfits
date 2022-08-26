@@ -16,17 +16,7 @@ from typing import List, Optional
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.io.fits.fitsrec import FITS_rec
-
-try:
-    from math import isnan
-
-    from astropy import units as u
-    from astropy.io import fits as pyfits
-    from numpy import float32
-except ImportError as error:
-    print(str(error))
-    exit(1)
-
+from numpy import float32, isnan
 
 header_keys = [
     "CRVAL1",
@@ -87,8 +77,8 @@ def make_txt_src_table_filename(src_table_fits: str, pawprint_number: int) -> st
     return src_table_fits.replace(".fits", f"-p{pawprint_number}-srctbl.dat")
 
 
-def generate_source_table_header(keys: List[str]) -> str:
-    """Generate a header for text source table based on data keys."""
+def generate_txt_header(keys: List[str]) -> str:
+    """Generate a header for output text file based on data keys."""
     return f"# {' '.join(keys)}\n"
 
 
@@ -120,6 +110,30 @@ def convert_dec_to_ddmmss(value: float, unit: Optional[str] = "deg") -> str:
         return f" {dec.dms[0]:02.0f}:{abs(dec.dms[1]):02.0f}:{abs(dec.dms[2]):05.2f}"
     else:
         return f"{dec.dms[0]:+03.0f}:{abs(dec.dms[1]):02.0f}:{abs(dec.dms[2]):05.2f}"
+
+
+def make_txt_catalog_filename(catalog_fits: str) -> str:
+    """Prepare default name for text file which stores catalog converted from FITS format."""
+    suffix = ".fits"
+    file = Path(catalog_fits)
+
+    if file.suffix != suffix:
+        catalog_fits = str(file.with_suffix(suffix))
+
+    return catalog_fits.replace(".fits", "-cat.dat")
+
+
+def generate_catalog_format(keys: List[str]) -> str:
+    """Generate a formatter for text catalog based on length of keys list."""
+    return f'{("%15s " * len(keys)).rstrip(" ")}\n'
+
+
+def get_catalog_fits_records(catalog_fits: str) -> FITS_rec:
+    """Get records from catalog FITS file."""
+    with fits.open(catalog_fits) as hdu_descriptor:
+        records = hdu_descriptor[1].data
+
+    return records
 
 
 def pawprint_to_fits(filename, pawprint_number):
@@ -185,7 +199,7 @@ def convert_src_table_fits_to_txt(
     src_table_fits: str, pawprint_number: int, src_table_txt: Optional[str] = None
 ) -> None:
     """
-    Save a source table with raw data to a text file.
+    Save a source table with raw data in FITS format to a text file.
 
     Parameters
     ----------
@@ -200,7 +214,7 @@ def convert_src_table_fits_to_txt(
         source table in ASCII format. The default is None.
         If None the name of the output file contains a proper
         pawprint number which the file comes from and the
-        "-srctbl" suffix.
+        "-srctbl.dat" suffix.
 
 
     Notes
@@ -213,13 +227,13 @@ def convert_src_table_fits_to_txt(
     --------
     >>> from vphasfits import convert_src_table_fits_to_txt, source_table_keys
     >>> source_table_keys.remove("DEC")
-    >>> source_table_keys += ["Aper_flux_4", "Aper_flux_4_err"]
+    >>> source_table_keys += ['Aper_flux_4', 'Aper_flux_4_err']
     >>> convert_src_table_fits_to_txt("0704a.fits", 23)  # Output file: 0704a-p23-srctbl.dat
     """
     if src_table_txt is None:
         src_table_txt = make_txt_src_table_filename(src_table_fits, pawprint_number)
 
-    src_table_header = generate_source_table_header(source_table_keys)
+    src_table_header = generate_txt_header(source_table_keys)
     src_table_format = generate_source_table_format(source_table_keys)
     records = get_fits_records(src_table_fits, pawprint_number)
 
@@ -239,72 +253,57 @@ def convert_src_table_fits_to_txt(
             file_descriptor.write(src_table_format % row)
 
 
-def catalog_to_txt(filename):
-    """Save the VPHAS+ catalog to a text file.
+def convert_catalog_fits_to_txt(catalog_fits: str, catalog_txt: Optional[str] = None) -> None:
+    """
+    Save a catalog with raw data in FITS format to a text file.
 
     Parameters
     ----------
-    filename : str
-        A name of a multi-extension fits
-        catalog from the VPHAS+ project.
+    catalog_fits : str
+        Name (or path) of the file with multi-extension
+        fits catalog from the VPHAS+ project.
+    catalog_txt : str, optional
+        Name (or path) of the output file which stores
+        catalog in ASCII format. The default is None.
+        If None the name of the output file has the same
+        name as input file with "-cat.dat" suffix.
+
 
     Notes
     -----
-    File is saved in the working directory
-    and its name contains the '-cat' suffix.
-    To add/remove columns to/from the text file,
-    please edit 'catalog_keys' (list) variable.
-    This also allows to change the order of columns.
+    To add/remove columns to/from the text file, please
+    edit "catalog_keys" list. This also allows to change
+    the order of columns.
 
     Examples
     --------
-    >>> from vphasfits import vphaslib
-    >>> vphaslib.catalog_keys.remove('sourceID')
-    >>> vphaslib.catalog_keys
+    >>> from vphasfits import convert_catalog_fits_to_txt, catalog_keys
+    >>> catalog_keys.remove('sourceID')
+    >>> catalog_keys
     >>> ['RAJ2000', 'DEJ2000', 'u', 'err_u', 'g', 'err_g', 'r2', 'err_r2', 'ha', 'err_ha', 'r', 'err_r', 'i', 'err_i']
-    >>> vphaslib.catalog_to_txt("VPHASDR2_PSC_L213_B-1.fits")
+    >>> convert_catalog_fits_to_txt("VPHASDR2_PSC_L213_B-1.fits")  # Output file: VPHASDR2_PSC_L213_B-1-cat.dat
     """
-    try:
-        with pyfits.open(filename) as hdulist:
-            try:
-                data = hdulist[1].data
-            except IndexError:
-                print("Module %s: %s is not a fits catalog." % (__name__, filename))
-                return
+    if catalog_txt is None:
+        catalog_txt = make_txt_catalog_filename(catalog_fits)
 
-            textfile_name = filename.replace('.fits', '-cat.dat')
-            textfile_header = "#"
+    catalog_header = generate_txt_header(catalog_keys)
+    catalog_format = generate_catalog_format(catalog_keys)
+    records = get_catalog_fits_records(catalog_fits)
 
+    with open(catalog_txt, "w") as file_descriptor:
+        file_descriptor.write(catalog_header)
+
+        for record in records:
+            row = ()
             for key in catalog_keys:
-                textfile_header += "  " + key
+                if key == "RAJ2000":
+                    row += (convert_ra_to_hhmmss(record.field(key)),)
+                elif key == "DEJ2000":
+                    row += (convert_dec_to_ddmmss(record.field(key)),)
+                else:
+                    field = record.field(key)
+                    if isinstance(field, float32) and isnan(field):
+                        field = 99.9999
+                    row += (field,)
 
-            with open(textfile_name, 'w') as textfile_descriptor:
-                textfile_descriptor.write(textfile_header + "\n")
-                row_format = ("%15s " * len(catalog_keys)).rstrip(' ') + "\n"
-
-                for dat in data:
-                    row = tuple()
-                    for key in catalog_keys:
-                        try:
-                            if key == "RAJ2000":
-                                coo = SkyCoord(dat.field(key), 0.0, frame="icrs", unit="deg")
-                                ra = "%02d:%02d:%05.2f" % (coo.ra.hms[0], coo.ra.hms[1], coo.ra.hms[2])
-                                row += ra,
-                            elif key == "DEJ2000":
-                                coo = SkyCoord(0.0, dat.field(key), frame="icrs", unit="deg")
-                                dec = "%02d:%02d:%05.2f" % (coo.dec.dms[0], abs(coo.dec.dms[1]), abs(coo.dec.dms[2]))
-                                row += dec,
-                            else:
-                                df = dat.field(key)
-                                if isinstance(df, float32) and isnan(df):
-                                    df = 99.9999
-                                row += df,
-                        except KeyError:
-                            print("Module %s: Key '%s' cannot exist in the catalog_keys list." % (__name__, key))
-                            return
-
-                    textfile_descriptor.write(row_format % row)
-
-    except IOError as error:
-        print("Module %s: %s." % (__name__, str(error)))
-        return
+            file_descriptor.write(catalog_format % row)
