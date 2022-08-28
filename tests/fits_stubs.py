@@ -1,8 +1,12 @@
-from numpy import float32, nan
+from dataclasses import dataclass
+from typing import Any, Dict
 
-__all__ = ["FITSRecordCatalog", "FITSRecordTable", "HDUListCatalog", "HDUListTable"]
+from numpy import array, dtype, float32, nan
+
+__all__ = ["FITSRecordCatalog", "FITSRecordTable", "HDUListCatalog", "HDUListTable", "HDUListImgStub"]
 
 NaN = float32(nan)
+
 
 src_table_fields = {
     "Sequence_number": 1.0,
@@ -15,7 +19,6 @@ src_table_fields = {
     "Aper_flux_3": 15.913,
     "Aper_flux_3_err": 0.409,
 }
-
 
 catalog_fields = {
     "sourceID": "0222b-4-68296",
@@ -33,6 +36,49 @@ catalog_fields = {
     "err_r": 0.059,
     "i": 19.147,
     "err_i": 0.053,
+}
+
+primary_header = {"OBJECT": "M13", "RA": 250.42183, "DEC": 36.45986, "EXTEND": True}
+
+primary_comments = {
+    "OBJECT": "NGC6205",
+    "RA": "# Image center (RA)",
+    "DEC": "# Image center (DEC)",
+    "EXTEND": "Extension file",
+}
+
+image_header = {
+    "CRVAL1": 2.39,
+    "CRVAL2": 10.56,
+    "CRPIX1": 32.65,
+    "CRPIX2": 6.38,
+    "CTYPE1": "RA-TAN",
+    "CTYPE2": "DEC-TAN",
+    "CD1_1": 14.07,
+    "CD2_1": 18.47,
+    "CD1_2": 0.76,
+    "CD2_2": 27.53,
+    "RAZP02": 28.15,
+    "DECZP02": 30.53,
+    "STDCRMS": 16.73,
+    "WCSPASS": 5,
+}
+
+image_comments = {
+    "CRVAL1": "deg",
+    "CRVAL2": "deg",
+    "CRPIX1": "Center pixel",
+    "CRPIX2": "Center pixel",
+    "CTYPE1": "Pixel coo",
+    "CTYPE2": "Pixel coo",
+    "CD1_1": "WCS",
+    "CD2_1": "WCS",
+    "CD1_2": "WCS",
+    "CD2_2": "WCS",
+    "RAZP02": "RA shift",
+    "DECZP02": "DEC shift",
+    "STDCRMS": "RMS",
+    "WCSPASS": "WCS PASS",
 }
 
 
@@ -82,6 +128,33 @@ class HDUListStub:
 
     def __getitem__(self, i):
         return BinTableHDUStub(self.fields)
+
+
+@dataclass
+class Header:
+
+    header: Dict[str, Any]
+    comments: Dict[str, str]
+
+    def __getitem__(self, key):
+        return self.header[key]
+
+
+class PrimaryHDUStub:
+    header = Header(primary_header, primary_comments)
+
+
+class ImageHDUStub:
+    header = Header(image_header, image_comments)
+    data = array([[1, 2], [3, 4]], dtype=dtype(">i4"))
+
+
+class HDUListImgStub:
+    def __getitem__(self, i):
+        if i == 0:
+            return PrimaryHDUStub()
+        else:
+            return ImageHDUStub()
 
 
 FITSRecordTable = FITSRecordStub(src_table_fields)
