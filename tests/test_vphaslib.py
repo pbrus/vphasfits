@@ -1,5 +1,5 @@
 from io import StringIO
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -8,16 +8,47 @@ from vphasfits.vphaslib import (
     convert_dec_to_ddmmss,
     convert_ra_to_hhmmss,
     convert_src_table_fits_to_txt,
+    create_single_fits,
     generate_catalog_format,
     generate_source_table_format,
     generate_txt_header,
     get_catalog_fits_records,
-    get_fits_records,
+    get_source_table_fits_records,
+    make_output_fits_filename,
     make_txt_catalog_filename,
     make_txt_src_table_filename,
+    pawprint_from_mef,
 )
 
-from .fits_stubs import FITSRecordCatalog, FITSRecordTable, HDUListCatalog, HDUListTable
+from .fits_stubs import (
+    FITSRecordCatalog,
+    FITSRecordTable,
+    HDUListCatalog,
+    HDUListImgStub,
+    HDUListTable,
+    Header,
+    ImageHDUStub,
+)
+
+
+@pytest.fixture
+def fits_image_open_mock():
+    with patch("vphasfits.vphaslib.fits.open") as mock:
+        mock.return_value.__enter__.return_value = HDUListImgStub()
+        yield mock
+
+
+@pytest.fixture
+def primary_hdu_mock():
+    with patch("vphasfits.vphaslib.PrimaryHDU") as mock:
+        yield mock
+
+
+@pytest.fixture
+def create_single_fits_mock():
+    with patch("vphasfits.vphaslib.create_single_fits") as mock:
+        mock.return_value = Mock()
+        yield mock
 
 
 @pytest.fixture
@@ -59,6 +90,84 @@ def make_txt_catalog_filename_mock():
 @pytest.mark.parametrize(
     "fits, pawprint, result",
     [
+        ("ADP.2019-10-07T14:31:52.250.fits", 15, "ADP.2019-10-07T14:31:52.250-p15.fits"),
+        ("my.file.fits", 3, "my.file-p3.fits"),
+        ("MULTI-MATRIX", 19, "MULTI-MATRIX-p19.fits"),
+        (r"/path/to/MEF_file.fits", 22, r"/path/to/MEF_file-p22.fits"),
+    ],
+)
+def test_make_output_fits_filename(fits, pawprint, result):
+    assert make_output_fits_filename(fits, pawprint) == result
+
+
+def test_create_single_fits(fits_image_open_mock, primary_hdu_mock):
+    pawprint = 5
+    primary_hdu_mock.return_value = ImageHDUStub()
+    result_header = {
+        "OBJECT": f"M13-p{pawprint}",
+        "RA": 250.42183,
+        "DEC": 36.45986,
+        "CRVAL1": 2.39,
+        "CRVAL2": 10.56,
+        "CRPIX1": 32.65,
+        "CRPIX2": 6.38,
+        "CTYPE1": "RA-TAN",
+        "CTYPE2": "DEC-TAN",
+        "CD1_1": 14.07,
+        "CD2_1": 18.47,
+        "CD1_2": 0.76,
+        "CD2_2": 27.53,
+        "RAZP02": 28.15,
+        "DECZP02": 30.53,
+        "STDCRMS": 16.73,
+        "WCSPASS": 5,
+    }
+    result_comments = {
+        "OBJECT": "NGC6205",
+        "RA": "# Image center (RA)",
+        "DEC": "# Image center (DEC)",
+        "CRVAL1": "deg",
+        "CRVAL2": "deg",
+        "CRPIX1": "Center pixel",
+        "CRPIX2": "Center pixel",
+        "CTYPE1": "Pixel coo",
+        "CTYPE2": "Pixel coo",
+        "CD1_1": "WCS",
+        "CD2_1": "WCS",
+        "CD1_2": "WCS",
+        "CD2_2": "WCS",
+        "RAZP02": "RA shift",
+        "DECZP02": "DEC shift",
+        "STDCRMS": "RMS",
+        "WCSPASS": "WCS PASS",
+    }
+
+    fits = create_single_fits("image.fits", pawprint)
+
+    assert fits.header == Header(result_header, result_comments)
+    assert (fits.data == ImageHDUStub.data).all()
+
+
+def test_get_pawprint_from_mef_passing_output_filename(create_single_fits_mock):
+    output = "pawprint_7.fits"
+    create_single_fits_mock.return_value = Mock()
+    pawprint_from_mef("mef.fits", 7, output)
+
+    create_single_fits_mock.assert_called_once()
+    create_single_fits_mock.return_value.writeto.assert_called_once_with(output)
+
+
+def test_get_pawprint_from_mef_default_output_filename(create_single_fits_mock):
+    create_single_fits_mock.return_value = Mock()
+    pawprint_from_mef("mef.fits", 7)
+
+    create_single_fits_mock.assert_called_once()
+    create_single_fits_mock.return_value.writeto.assert_called_once_with("mef-p7.fits")
+
+
+@pytest.mark.parametrize(
+    "fits, pawprint, result",
+    [
         ("ADP.2019-10-07T14:31:52.250.fits", 15, "ADP.2019-10-07T14:31:52.250-p15-srctbl.dat"),
         ("my.file.fits", 3, "my.file-p3-srctbl.dat"),
         ("MULTI-MATRIX", 19, "MULTI-MATRIX-p19-srctbl.dat"),
@@ -91,8 +200,8 @@ def test_generate_source_table_format(keys, result):
     assert generate_source_table_format(keys) == result
 
 
-def test_get_fits_records(fits_src_table_open_mock):
-    records = get_fits_records("file.fits", 3)
+def test_get_source_table_fits_records(fits_src_table_open_mock):
+    records = get_source_table_fits_records("file.fits", 3)
 
     for record in records:
         assert record == FITSRecordTable
@@ -243,6 +352,6 @@ def test_convert_catalog_fits_to_txt_default_output(fits_catalog_open_mock, make
 
 def test_convert_catalog_fits_to_txt_passing_output(fits_catalog_open_mock, open_mock, make_txt_catalog_filename_mock):
     fits = "0704b.fits"
-    convert_catalog_fits_to_txt(fits, "output_catlog.txt")
+    convert_catalog_fits_to_txt(fits, "output_catalog.txt")
 
     make_txt_catalog_filename_mock.assert_not_called()

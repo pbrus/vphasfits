@@ -3,7 +3,15 @@ from typing import Any, Dict
 
 from numpy import array, dtype, float32, nan
 
-__all__ = ["FITSRecordCatalog", "FITSRecordTable", "HDUListCatalog", "HDUListTable", "HDUListImgStub"]
+__all__ = [
+    "FITSRecordCatalog",
+    "FITSRecordTable",
+    "HDUListCatalog",
+    "HDUListImgStub",
+    "HDUListTable",
+    "Header",
+    "ImageHDUStub",
+]
 
 NaN = float32(nan)
 
@@ -138,6 +146,16 @@ class Header:
 
     def __getitem__(self, key):
         return self.header[key]
+
+    def __setitem__(self, key, value):
+        self.header[key] = value
+
+    def __iter__(self):
+        return iter(self.header)
+
+    def __delitem__(self, key):
+        del self.header[key]
+        del self.comments[key]
 
 
 class PrimaryHDUStub:
