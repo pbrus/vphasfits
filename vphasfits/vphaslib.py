@@ -185,9 +185,8 @@ def pawprint_from_mef(
 
     Notes
     -----
-    To add/remove columns to/from the header FITS, please
-    edit "image_header_keys" list. This also allows to change
-    the order of columns.
+    To add/remove columns to/from the header FITS,
+    please edit "image_header_keys" list.
 
     Examples
     --------

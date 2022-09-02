@@ -1,40 +1,54 @@
-#!/usr/bin/env python2
-#-*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
-try:
-    from vphasfits.vphaslib import srctbl_to_txt
-    from argparse import ArgumentParser
-    from argparse import RawTextHelpFormatter as tefo
-except ImportError as error:
-    print(str(error))
-    exit(1)
+from argparse import ArgumentParser, RawTextHelpFormatter
+from pathlib import Path
+from textwrap import dedent
+
+from vphasfits import convert_src_table_fits_to_txt
 
 
-argparser = ArgumentParser(
-    prog='vphas_srctbl.py',
-    description='>> Program transforms data from the VPHAS+ fits source table to a text file <<',
-    epilog='Copyright (c) 2017 Przemysław Bruś',
-    formatter_class=tefo
+arg_parser = ArgumentParser(
+    prog=f"{Path(__file__).name}",
+    description="Convert source table FITS from VPHAS+ project to a text file",
+    epilog="Copyright (c) https://github.com/pbrus",
+    formatter_class=RawTextHelpFormatter,
 )
-argparser.add_argument(
-    'srctable',
-    help='a name of the fits source table from VPHAS+'
-)
-argparser.add_argument(
-    'pawprint',
-    help='a number pointing a proper pawprint of the mosaic\n\
-Allowed values range from 1 to 32.',
-    type=int
-)
-argparser.add_argument(
-    '-v', '--version',
-    action='version',
-    version='%(prog)s\n \
-* Version: 2017-07-06\n \
-* Licensed under the MIT license:\n \
-  http://opensource.org/licenses/MIT\n \
-* Copyright (c) 2017 Przemysław Bruś'
-)
-args = argparser.parse_args()
 
-srctbl_to_txt(args.srctable, args.pawprint)
+arg_parser.add_argument(
+    "table",
+    help=dedent(
+        """\
+    source table in FITS format
+    """
+    ),
+    type=str,
+    metavar="filename",
+)
+
+arg_parser.add_argument(
+    "pawprint",
+    help=dedent(
+        """\
+    a number pointing a proper pawprint
+    of the mosaic (from 1 to 32)
+    """
+    ),
+    metavar="pawprint",
+    type=int,
+    choices=range(1, 33),
+)
+
+arg_parser.add_argument(
+    "--output",
+    help=dedent(
+        """\
+    name of the output file
+    """
+    ),
+    metavar="filename",
+    type=str,
+    default=None,
+)
+
+args = arg_parser.parse_args()
+convert_src_table_fits_to_txt(args.table, args.pawprint, args.output)

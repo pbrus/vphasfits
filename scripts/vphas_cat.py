@@ -1,34 +1,41 @@
-#!/usr/bin/env python2
-#-*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
-try:
-    from vphasfits.vphaslib import catalog_to_txt
-    from argparse import ArgumentParser
-    from argparse import RawTextHelpFormatter as tefo
-except ImportError as error:
-    print(str(error))
-    exit(1)
+from argparse import ArgumentParser, RawTextHelpFormatter
+from pathlib import Path
+from textwrap import dedent
+
+from vphasfits import convert_catalog_fits_to_txt
 
 
-argparser = ArgumentParser(
-    prog='vphas_cat.py',
-    description='>> Program transforms data from the VPHAS+ fits catalog to a text file <<',
-    epilog='Copyright (c) 2017 Przemysław Bruś',
-    formatter_class=tefo
+arg_parser = ArgumentParser(
+    prog=f"{Path(__file__).name}",
+    description="Convert catalog FITS from VPHAS+ project to a text file",
+    epilog="Copyright (c) https://github.com/pbrus",
+    formatter_class=RawTextHelpFormatter,
 )
-argparser.add_argument(
-    'catalog',
-    help='a name of the fits catalog from VPHAS+',
-)
-argparser.add_argument(
-    '-v', '--version',
-    action='version',
-    version='%(prog)s\n \
-* Version: 2017-07-06\n \
-* Licensed under the MIT license:\n \
-  http://opensource.org/licenses/MIT\n \
-* Copyright (c) 2017 Przemysław Bruś'
-)
-args = argparser.parse_args()
 
-catalog_to_txt(args.catalog)
+arg_parser.add_argument(
+    "catalog",
+    help=dedent(
+        """\
+    catalog in FITS format
+    """
+    ),
+    type=str,
+    metavar="filename",
+)
+
+arg_parser.add_argument(
+    "--output",
+    help=dedent(
+        """\
+    name of the output file
+    """
+    ),
+    metavar="filename",
+    type=str,
+    default=None,
+)
+
+args = arg_parser.parse_args()
+convert_catalog_fits_to_txt(args.catalog, args.output)
