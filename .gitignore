@@ -105,3 +105,6 @@ scirpts/*.fits
 scripts/*.dat
 *.fits
 *.dat
+
+# PyCharm
+.idea/
