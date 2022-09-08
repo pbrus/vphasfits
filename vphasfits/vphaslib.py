@@ -66,7 +66,7 @@ catalog_keys = [
 
 
 def make_output_fits_filename(multi_extension_fits_filename: str, pawprint_number: int) -> str:
-    """Prepare default name fo FITS file which stores single pawprint from MEF file."""
+    """Prepare default name of FITS file which stores single pawprint from MEF file."""
     suffix = ".fits"
     file = Path(multi_extension_fits_filename)
 
