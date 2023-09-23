@@ -1,3 +1,4 @@
+[![tests](https://github.com/pbrus/vphasfits/actions/workflows/tests.yml/badge.svg)](https://github.com/pbrus/vphasfits/actions/workflows/tests.yml)
 # Vphasfits
 
 Python 3.6+ package converting the multi-extension FITS (MEF) frames from the [**VPHASplus**](http://www.vphasplus.org) project to handy formats.
